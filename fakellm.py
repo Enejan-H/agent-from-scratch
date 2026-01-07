@@ -1,16 +1,41 @@
-def decide(state):
-    """Decision function, this acts like a brain of the agent.  
-    It takes the current state of the environment and returns an action."""
-    # Placeholder implementation
-    if state["error"] >= 2:
-        return "done"
-    number = state["number"]
-    if number > 10:
-        return "decrease"
-    elif number < 5:
-        return "increase"
-    else:
-        return "done"
+import json
+
+def llm_decide(state):
+    """
+    LLM'den karar alıyormuş gibi davranan decision engine.
+    """
+
+    prompt = f"""
+You are an agent controller.
+
+Current state:
+- number: {state["number"]}
+- step: {state["step"]}
+- errors: {state["errors"]}
+
+Rules:
+- Allowed actions: increase, decrease, done
+- If errors >= 3 → done
+- Respond ONLY in JSON
+
+Example:
+{{"action": "increase"}}
+"""
+
+    # ŞİMDİLİK FAKE LLM RESPONSE
+    #fake_llm_response = '{"action": "increase"}'
+    fake_llm_response = '{"action": "fly-to-the-moon"}'  # Geçersiz eylem örneği
+    #fake_llm_response = '{"action": "decrease"}'
+
+    try:
+        decision = json.loads(fake_llm_response)
+        action = decision.get("action")
+
+        return action
+
+    except Exception:
+        return "invalid"
+
     
 
 def act(action, state):
@@ -29,7 +54,7 @@ def act(action, state):
             state["last_action"] = action    
 
         else:
-            state["error"] +=1
+            state["errors"] +=1
             state["last_action"] = "invalid"
         return state
     
@@ -41,16 +66,20 @@ def run_agent(initial_number):
             "done": False,
             "history": [],
             "last_action": None,
-            "error": 0
+            "errors": 0
             }
         
-        MAX_STEPS = 10
+        MAX_STEPS = 4
 
         while not state["done"] and state["step"] < MAX_STEPS:
         
-            decision = decide(state)
-            # 🔹 Son adımı act() ile kaydet
-            state = act(decision, state)
+            ALLOWED_ACTIONS = ["increase", "decrease", "done"]
+
+            decision = llm_decide(state)
+
+            if decision not in ALLOWED_ACTIONS:
+                state["errors"] += 1
+                decision = "invalid"
 
             state["history"].append({
                 "step": state["step"],
